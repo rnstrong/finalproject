@@ -25,6 +25,60 @@ access_token_secret = twitter_info.access_token_secret
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
+# Set up library to grab stuff from twitter with authentication, and return it in a JSON format 
+t_api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
+
+##### END TWEEPY SETUP CODE
+# Set up to grab stuff from the OMDB API
+titles = ["Princess Bride", "Avengers", "Sleeping Beauty"]
+
+
+
+## Task 1 - Getting Data 
+## Define a function called get_omdb_results which will take one string, the title of a movie
+## and will return a JSON object of information from OMDB about that movie and uses caching
+def get_omdb_results(title):
+	unique_identifier = "omdb_{}".format(title)
+	if unique_identifier in CACHE_DICTION:
+		omdb_results = CACHE_DICTION[unique_identifier]		
+	else:
+		d = {'t': title}
+		omdb_results = requests.get("http://www.omdbapi.com/", params=d)
+		CACHE_DICTION[unique_identifier] = omdb_results
+		f = open(CACHE_FNAME, 'w')
+		f.write(json.dumps(CACHE_DICTION))
+		f.close()
+
+	return omdb_results
+
+## Define a function called get_twitter_results which will take one string, either the name of the actor
+## or director for a particular movie, and return a JSON obj with information about that user and uses caching
+def get_user_info(username):
+	unique_identifier = "twitter_{}".format(username)
+	if unique_identifier in CACHE_DICTION:
+		twitter_results = CACHE_DICTION[unique_identifier]		
+	else:
+		
+		twitter_results = t_api.user_timeline(username)
+		CACHE_DICTION[unique_identifier] = twitter_results
+		f = open(CACHE_FNAME, 'w')
+		f.write(json.dumps(CACHE_DICTION))
+		f.close()
+
+	return twitter_results
+
+
+##Set up caching dict here
+CACHE_FNAME = "SI206_final_cache.json"
+try: 
+	cache_file = open(CACHE_FNAME, 'r')
+	cache_contents = cache_file.read()
+	CACHE_DICTION = json.loads(cache_contents)
+	cache_file.close()
+except:
+	CACHE_DICTION = {}
+
+
 
 
 
