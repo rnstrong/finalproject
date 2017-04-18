@@ -29,8 +29,9 @@ auth.set_access_token(access_token, access_token_secret)
 t_api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 
 ##### END TWEEPY SETUP CODE
-# Set up to grab stuff from the OMDB API
-titles = ["Princess Bride", "Avengers", "Sleeping Beauty"]
+
+# Set up list to grab stuff from the OMDB API 
+test_titles = ["Princess Bride", "Avengers", "The Fifth Element"]
 
 
 
@@ -68,7 +69,7 @@ def get_user_info(username):
 	return twitter_results
 
 
-##Set up caching dict here
+## Set up caching dict here
 CACHE_FNAME = "SI206_final_cache.json"
 try: 
 	cache_file = open(CACHE_FNAME, 'r')
@@ -79,19 +80,85 @@ except:
 	CACHE_DICTION = {}
 
 
+## Write invocations to the function get_omdb_results and save those results to a list movie_dicts
+movie_dicts = []
+for title in test_titles:
+	movie_info = get_omdb_results(title)
+	movie_dicts.append(movie_info)
+
+
+## Write invocations to the function get_user_results and save those results to a list twitter_info
+twitter_info = []
+for dict in movie_dicts:
+	director = dict["Director"]
+	user_info = get_user_results(director)
+	twitter_info.append(user_info)
+
+
+## Task 2 - Creating database and loading data into database
+## Create a database file 'SI206_finalproject.db' with 3 tables (tweets, users, movies)
+## The Tweets table should hold in each row:
+##Tweet text
+##Tweet ID (primary key)
+##The user who posted the tweet (represented by a reference to the users table)
+##The movie search this tweet came from (represented by a reference to the movies table)
+##Number favorites
+##Number retweets
+
+conn = sqlite3.connect('SI206_finalproject.db')
+cur = conn.cursor()
+
+cur.execute('DROP TABLE IF EXISTS Tweets')
+cur.execute('CREATE TABLE Tweets(tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_id TEXT, title TEXT, num_retweets INTEGER, num_favorites)')
+
+
+
+## The Users table should hold in each row:
+##screen name text
+##User ID (primary key)
+##The user who posted the tweet (represented by a reference to the users table)
+##The movie search this tweet came from (represented by a reference to the movies table)
+##Number favorites
+##Number retweets
+
+
+cur.execute('DROP TABLE IF EXISTS Users')
+cur.execute('CREATE TABLE Users(user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, num_followers TEXT)')
+
+## The Movies table should hold in each row:
+#ID (primary key) (NOTE title is dangerous for a primary key, 2 movies could have the same title!)
+#Title of the movie
+#Director of the movie 
+#Number of languages the movie has
+#IMDB rating of the movie
+#The top billed (first in the list) actor in the movie
+
+
+cur.execute('DROP TABLE IF EXISTS Movies')
+cur.execute('CREATE TABLE Movies(imdb_id TEXT PRIMARY KEY, title TEXT, director TEXT, num_languages INTEGER, rating INTEGER, actor TEXT)')
+
+## load into the Movies table:
+
+statement1 = "INSERT OR IGNORE INTO Movies VALUES(?,?,?,?,?,?)"
+for movie in movie_dicts:
+	imdb_id = movie['imdbID']
+	title = movie['Title']
+	director = movie['Director']
+	num_languages = len(movie['Language'].split())
+	rating = movie['imdbRating']
+	actor = movie['Actors'].split(',')[0]
+
+
+	movie_details = (imdb_id, title, director, num_languages, rating, actor)
+	cur.execute(statement1, movie_details)
 
 
 
 
 
-
-
-
-
-
-
-
-
+##CLOSE YOUR DATABASE CONNECTION
+conn.commit()
+conn.close()
 # Write your test cases here.
 print("\n\nBELOW THIS LINE IS OUTPUT FROM TESTS:\n")
 
