@@ -7,10 +7,23 @@ import tweepy
 import twitter_info
 import json
 import sqlite3
+import itertools
+import collections
 ##if you're on windows:
 import sys
 import codecs
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+
+
+
+##### TWEEPY SETUP CODE:
+# Authentication information should be in a twitter_info file...
+consumer_key = twitter_info.consumer_key
+consumer_secret = twitter_info.consumer_secret
+access_token = twitter_info.access_token
+access_token_secret = twitter_info.access_token_secret
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
 
 
 
