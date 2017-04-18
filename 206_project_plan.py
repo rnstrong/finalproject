@@ -3,6 +3,7 @@
 
 # Put import statements you expect to need here!
 import unittest
+import requests
 import tweepy
 import twitter_info
 import json
@@ -47,7 +48,7 @@ def get_omdb_results(title):
 		omdb_results = requests.get("http://www.omdbapi.com/", params=d)
 		CACHE_DICTION[unique_identifier] = omdb_results
 		f = open(CACHE_FNAME, 'w')
-		f.write(json.dumps(CACHE_DICTION))
+		f.write(str(CACHE_DICTION))
 		f.close()
 
 	return omdb_results
@@ -82,17 +83,18 @@ except:
 
 ## Write invocations to the function get_omdb_results and save those results to a list movie_dicts
 movie_dicts = []
+
 for title in test_titles:
-	movie_info = get_omdb_results(title)
+	movie_info = get_omdb_results(title).text
 	movie_dicts.append(movie_info)
 
 
 ## Write invocations to the function get_user_results and save those results to a list twitter_info
-twitter_info = []
-for dict in movie_dicts:
-	director = dict["Director"]
-	user_info = get_user_results(director)
-	twitter_info.append(user_info)
+director_twitter_info = []
+#for dict in movie_dicts:
+	#director = dict["Director"]
+	#user_info = get_user_results(director)
+	#twitter_info.append(user_info)
 
 
 ## Task 2 - Creating database and loading data into database
@@ -140,17 +142,17 @@ cur.execute('CREATE TABLE Movies(imdb_id TEXT PRIMARY KEY, title TEXT, director 
 ## load into the Movies table:
 
 statement1 = "INSERT OR IGNORE INTO Movies VALUES(?,?,?,?,?,?)"
-for movie in movie_dicts:
-	imdb_id = movie['imdbID']
-	title = movie['Title']
-	director = movie['Director']
-	num_languages = len(movie['Language'].split())
-	rating = movie['imdbRating']
-	actor = movie['Actors'].split(',')[0]
+#for movie in movie_dicts:
+	#imdb_id = movie['imdbID']
+	#title = movie['Title']
+	#director = movie['Director']
+	#num_languages = len(movie['Language'].split())
+	#rating = movie['imdbRating']
+	#actor = movie['Actors'].split(',')[0]
 
 
-	movie_details = (imdb_id, title, director, num_languages, rating, actor)
-	cur.execute(statement1, movie_details)
+	#movie_details = (imdb_id, title, director, num_languages, rating, actor)
+	#cur.execute(statement1, movie_details)
 
 
 
@@ -167,35 +169,35 @@ class Test(unittest.TestCase):
 		ndirect = open("final_project_cache.json","r").read()
 		self.assertTrue("Rob Reiner" in ndirect)
 	def test_users_3(self):
-		conn = sqlite3.connect('final_project.db')
+		conn = sqlite3.connect('SI206_final_project.db')
 		cur = conn.cursor()
 		cur.execute('SELECT * FROM Users');
 		result = cur.fetchall()
 		self.assertTrue(len(result)>=3, "Testing there are at least 3 records in the Users database")
 		conn.close()
 	def test_movies_3(self):
-		conn = sqlite3.connect('final_project.db')
+		conn = sqlite3.connect('SI206_final_project.db')
 		cur = conn.cursor()
 		cur.execute('SELECT * FROM Movies')
 		result = cur.fetchall()
 		self.assertTrue(len(result)>=3)
 		conn.close()
 	def test_movies_col(self):
-		conn = sqlite3.connect('final_project.db')
+		conn = sqlite3.connect('SI206_final_project.db')
 		cur = conn.cursor()
 		cur.execute('SELECT * FROM Movies');
 		result = cur.fetchall()
 		self.assertTrue(len(result[1])==6,"Testing that there are 6 columns in the Movies table")
 		conn.close()
 	def test_users_col(self):
-		conn = sqlite3.connect('final_project.db')
+		conn = sqlite3.connect('SI206_final_project.db')
 		cur = conn.cursor()
 		cur.execute('SELECT * FROM Users');
 		result = cur.fetchall()
 		self.assertTrue(len(result[1])==4,"Testing that there are 4 columns in the Users table")
 		conn.close()
 	def test_tweets_col(self):
-		conn = sqlite3.connect('final_project.db')
+		conn = sqlite3.connect('SI206_final_project.db')
 		cur = conn.cursor()
 		cur.execute('SELECT * FROM Tweets');
 		result = cur.fetchall()
