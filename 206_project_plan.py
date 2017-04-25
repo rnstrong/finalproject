@@ -54,16 +54,16 @@ def get_omdb_results(title):
 
 	return omdb_results
 
-## Define a function called get_twitter_results which will take one string, either the name of the actor
-## or director for a particular movie, and return a JSON obj with information about that user and uses caching
-def get_user_info(username):
-	unique_identifier = "twitter_{}".format(username)
+## Define a function called get_movie_results which will take one string, the name of the movie
+## and return a JSON obj with tweets mentioning that movie, uses caching
+def get_movie_tweets(title):
+	unique_identifier = "twitter_{}".format(title)
 	if unique_identifier in CACHE_DICTION:
 		twitter_results = CACHE_DICTION[unique_identifier]		
 	else:
 		
-		twitter_results = t_api.user_timeline(username)
-		CACHE_DICTION[unique_identifier] = twitter_results[0]
+		twitter_results = t_api.search(title)
+		CACHE_DICTION[unique_identifier] = twitter_results
 		f = open(CACHE_FNAME, 'w')
 		f.write(json.dumps(CACHE_DICTION))
 		f.close()
@@ -90,13 +90,13 @@ for title in test_titles:
 	movie_dicts.append(movie_info)
 
 
-## Write invocations to the function get_user_results and save those results to a list twitter_info
-director_twitter_info = []
+## Write invocations to the function get_movie_tweets and save those results to a list twitter_info
+movie_twitter_info = []
 for dict in movie_dicts:
-	rdict = ast.literal_eval(dict)
-	director = rdict["Director"]
-	user_info = get_user_info(director)
-	director_twitter_info.append(user_info)
+	rdict = json.loads(dict)
+	title = rdict["Title"]
+	tweets_info = get_movie_tweets(title)
+	movie_twitter_info.append((tweets_info,title))
 
 
 ## Task 2 - Creating database and loading data into database
@@ -127,7 +127,7 @@ cur.execute('CREATE TABLE Tweets(tweet_id TEXT PRIMARY KEY, tweet_text TEXT, use
 
 
 cur.execute('DROP TABLE IF EXISTS Users')
-cur.execute('CREATE TABLE Users(user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, num_followers TEXT)')
+cur.execute('CREATE TABLE Users(user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, num_followers INTEGER)')
 
 ## The Movies table should hold in each row:
 #ID (primary key) (NOTE title is dangerous for a primary key, 2 movies could have the same title!)
@@ -144,19 +144,50 @@ cur.execute('CREATE TABLE Movies(imdb_id TEXT PRIMARY KEY, title TEXT, director 
 ## load into the Movies table:
 
 statement1 = "INSERT OR IGNORE INTO Movies VALUES(?,?,?,?,?,?)"
-nostr = json.loads(movie_dicts[0])
+
 for movie in movie_dicts:
-	nostr = json.loads(movie)
-	imdb_id = nostr['imdbID']
-	title = nostr['Title']
-	director = nostr['Director']
-	num_languages = len(nostr['Language'].split())
-	rating = nostr['imdbRating']
-	actor = nostr['Actors'].split(',')[0]
+	rmovie = json.loads(movie)
+	imdb_id = rmovie['imdbID']
+	title = rmovie['Title']
+	director = rmovie['Director']
+	num_languages = len(rmovie['Language'].split())
+	rating = rmovie['imdbRating']
+	actor = rmovie['Actors'].split(',')[0]
 
 
 	movie_details = (imdb_id, title, director, num_languages, rating, actor)
 	cur.execute(statement1, movie_details)
+
+
+
+## load into Users table:
+
+statement2 = "INSERT OR IGNORE INTO Users VALUES(?,?,?,?)"
+
+for tweet in movie_twitter_info:
+	for status in tweet[0]["statuses"]:
+		user_id = status["user"]["id_str"]
+		screen_name = status["user"]["screen_name"]
+		num_favs = status["user"]["favourites_count"]
+		num_followers = status["user"]["followers_count"]
+
+		user_details =(user_id, screen_name, num_favs, num_followers)
+		cur.execute(statement2, user_details)
+
+
+statement3 = "INSERT OR IGNORE INTO Tweets VALUES(?,?,?,?,?,?)"
+
+for tweet in movie_twitter_info:
+	title = tweet[1]
+	for status in tweet[0]["statuses"]:
+		tweet_id = status["id_str"]
+		tweet_text = status["text"]
+		user_id = status["user"]["id_str"]
+		num_retweets = status["retweet_count"]
+		num_favs = status["favorite_count"]
+
+		tweet_details = (tweet_id, tweet_text, user_id, title, num_retweets, num_favs)
+		cur.execute(statement3, tweet_details)
 
 
 
@@ -172,6 +203,7 @@ class Test(unittest.TestCase):
 	def test_caching(self):
 		ndirect = open("SI206_final_cache.json","r").read()
 		self.assertTrue("Rob Reiner" in ndirect)
+		
 	def test_users_3(self):
 		conn = sqlite3.connect('SI206_finalproject.db')
 		cur = conn.cursor()
