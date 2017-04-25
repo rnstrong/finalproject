@@ -3,6 +3,7 @@
 
 # Put import statements you expect to need here!
 import unittest
+import re
 import ast
 import requests
 import tweepy
@@ -177,7 +178,7 @@ for tweet in movie_twitter_info:
 		user_details =(user_id, screen_name, num_favs, num_followers)
 		cur.execute(statement2, user_details)
 
-
+## Load into Tweets Table:
 statement3 = "INSERT OR IGNORE INTO Tweets VALUES(?,?,?,?,?,?)"
 
 for tweet in movie_twitter_info:
@@ -192,7 +193,7 @@ for tweet in movie_twitter_info:
 		tweet_details = (tweet_id, tweet_text, user_id, title, num_retweets, num_favs)
 		cur.execute(statement3, tweet_details)
 
-
+## Task 3: Create a Class Movie
 ## Define class movie that accepts a dictionary representative of a movie into the constructor
 class Movie:
 	def __init__(self, movie_dict):
@@ -209,11 +210,90 @@ class Movie:
 ## Define a __str__ method
 	def __str__(self):
 		return 'Movie Summary\nTitle: {}\nDirector: {}\nRating: {}\nActors: {}\nLanguages: {}\n'.format(self.movie_title, self.director, self.rating, self.actors, self.languages)
+## Define a method that returns the string summary
+	def pretty(self):
+		return 'Movie Summary\nTitle: {}\nDirector: {}\nRating: {}\nActors: {}\nLanguages: {}\n\n'.format(self.movie_title, self.director, self.rating, self.actors, self.languages)
 
-## Create instances of class Movie and print them
+
+	
+
+## Task 4: Process data from Database tables
+
+## Get all text from tweets
+
+q1 = "SELECT tweet_text FROM Tweets"
+cur.execute(q1)
+all_tweets = cur.fetchall()
+
+
+## Use list comphrehension to extract the strings of tweets from the tuples and add them to the list tweet_list
+tweet_list = [set[0] for set in all_tweets]
+
+tweet_words = []
+for t in tweet_list:
+	w = t.split()
+	for c in w:
+		tweet_words.append(c)
+
+
+## Use a regular expression to find all hashtags in the tweets and append those to a list tweet_hashtags
+tweet_hashtags = []
+for tweet in tweet_list:
+	hashtags = re.findall(r"#\w*", tweet)
+	tweet_hashtags.append(hashtags)
+
+## extract all the hashtags to a list all_hashtags
+all_hashtags = []
+for tweet in tweet_hashtags:
+	for tag in tweet:
+		if tag != []:
+			all_hashtags.append(tag)
+
+
+
+
+## User a counter to find the most common word among the tweets and save it to the variable most_common
+common_words = collections.Counter(tweet_words).most_common()
+most_common = common_words[0][0]
+
+
+## Get the users with followers over 200 and that user's screenname as well as their tweets and save that info to pop_user_tweets
+q2 = "SELECT num_followers, screen_name, tweet_text FROM Users INNER JOIN Tweets WHERE num_followers > 200"
+cur.execute(q2)
+pop_user_tweets = cur.fetchall()
+
+## Sort this info (with lambda function) to find who the user with the highest follower count is and save this to most_pop_user
+sorted_user_tweets = sorted(pop_user_tweets, key=lambda x:[0])
+most_pop_user = pop_user_tweets[0][1]
+
+
+## Find out who the director of the movie with the highest IMDB rating is and save that info to pop_director
+q3 = "SELECT director FROM Movies ORDER BY rating LIMIT 1"
+cur.execute(q3)
+pop_director_result = cur.fetchall()
+pop_director = pop_director_result[0][0]
+
+
+## Task 5: Writing a summary to a file summary.text
+f = open("summary", "w")
+f.write("~~Summary of Test Movies~~\n")
+
+## Create instances of class Movie and write them to the file
 for movie in movie_dicts:
 	film = Movie(movie)
-	print(film)
+	f.write(film.pretty())
+
+f.write("\nPopularity Stats:\nUser with most followers: {}\nDirector of Highest Rated Movie: {}\nMost Tweeted Word: {}\n".format(most_pop_user, pop_director, most_common))
+f.write("Summary Stats:\nAll Hashtags Tweeted:")
+for hashtag in all_hashtags:
+	f.write("{}  ".format(hashtag)
+
+
+
+
+
+
+
 
 
 
