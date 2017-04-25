@@ -71,6 +71,9 @@ def get_movie_tweets(title):
 	return twitter_results
 
 
+
+
+
 ## Set up caching dict here
 CACHE_FNAME = "SI206_final_cache.json"
 try: 
@@ -188,6 +191,30 @@ for tweet in movie_twitter_info:
 
 		tweet_details = (tweet_id, tweet_text, user_id, title, num_retweets, num_favs)
 		cur.execute(statement3, tweet_details)
+
+
+## Define class movie that accepts a dictionary representative of a movie into the constructor
+class Movie:
+	def __init__(self, movie_dict):
+		
+		self.full_results = json.loads(movie_dict)
+		self.movie_title = self.full_results["Title"]
+		self.director = self.full_results["Director"]
+		self.rating = self.full_results["imdbRating"]
+		self.actors = self.full_results["Actors"]
+		self.languages = self.full_results["Language"]
+## Define method that returns the number of languages spoken in the movie
+	def num_lang(self):
+		return len(self.full_results["Language"].split())
+## Define a __str__ method
+	def __str__(self):
+		return 'Movie Summary\nTitle: {}\nDirector: {}\nRating: {}\nActors: {}\nLanguages: {}\n'.format(self.movie_title, self.director, self.rating, self.actors, self.languages)
+
+## Create instances of class Movie and print them
+for movie in movie_dicts:
+	film = Movie(movie)
+	print(film)
+
 
 
 
